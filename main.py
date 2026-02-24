@@ -70,10 +70,23 @@ class CommandApp(App):
 
     def handle_command(self, command: str):
         history = self.query_one("#history", History)
+        command.strip()
+        els = command.split(" ")
 
         if command == "ls":
-            history.add_entry("test")
-            return
+            command = "dir /B"
+
+        if els[0] == "cd":
+            path = els[1]
+            result_path = os.path.normpath(os.path.join(self.current_dir, path))
+            if os.path.exists(result_path):
+                if os.path.isdir(result_path):
+                    self.current_dir = result_path
+                    return
+                history.add_entry(f"[red]Déplacement vers un fichier impossible[/red]")
+            else:
+                history.add_entry(f"[red]Chemin {result_path} non valide[/red]")
+                
 
         if command == "clear":
             history.remove_children()
