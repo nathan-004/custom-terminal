@@ -9,7 +9,7 @@ import os
 import json
 
 VARS = {
-    "CURRENT_DISK": os.path.splitdrive(os.getcwd())[0],
+    "CURRENT_DISK": os.path.splitdrive(os.path.dirname(os.path.abspath(__file__)))[0],
 }
 
 def vars_path(path) -> str:
@@ -19,8 +19,12 @@ def vars_path(path) -> str:
 
 class PathVariables:
     """Stocke les chemin vers des fichiers dans un fichier json"""
-    def __init__(self, path="path.json"):
+    def __init__(self, path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "path.json")):
         self.path = path
+
+        if not os.path.exists(path):
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({}, f)
     
     def is_variable(self, var:str) -> bool:
         """Renvoie True si le fichier path contient une variable pour var"""
@@ -87,7 +91,7 @@ class CommandApp(App):
         input_widget.placeholder = f"{display_path} ❯"
 
     def on_mount(self):
-        self.current_dir = os.getcwd()
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
     def on_input_submitted(self, event: Input.Submitted):
         command = event.value
@@ -137,7 +141,6 @@ class CommandApp(App):
                 if not os.path.exists(result_path):
                     history.add_entry(f"[red]{vars_path(result_path)} n'existe pas.[/red]")
                     return
-                history.add_entry(f"[yellow]{path} {els[2]} n'existe pas.[/yellow]")
                 path_variables.add(els[3], result_path if path == els[2] else path)
                 return
 
