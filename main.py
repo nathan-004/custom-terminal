@@ -6,6 +6,32 @@ from textual.reactive import reactive
 
 import subprocess
 import os
+import json
+
+VARS = {
+    "CURRENT_DISK": os.getcwd().split("\\")[0] + "/"
+}
+
+class PathVariables:
+    """Stocke les chemin vers des fichiers dans un fichier json"""
+    def __init__(self, path="path.json"):
+        self.path = path
+    
+    def is_variable(self, var:str) -> bool:
+        """Renvoie True si le fichier path contient une variable pour var"""
+        return var in self.variables
+    
+    def add(self, name, path):
+        new = self.variables
+        new[name] = path
+        with open(self.path, "w") as f:
+            json.dump(new, f)
+
+    @property
+    def variables(self):
+        with open(self.path, "r") as f:
+            variables = json.load(f)
+        return variables
 
 class History(VerticalScroll):
     """Zone d'historique des commandes"""
@@ -72,6 +98,7 @@ class CommandApp(App):
         history = self.query_one("#history", History)
         command.strip()
         els = command.split(" ")
+        path_variables = PathVariables()
 
         if command == "ls":
             command = "dir /B"
@@ -86,7 +113,31 @@ class CommandApp(App):
                 history.add_entry(f"[red]Déplacement vers un fichier impossible[/red]")
             else:
                 history.add_entry(f"[red]Chemin {result_path} non valide[/red]")
+        elif els[0] == "vars":
+            for name, value in VARS.items():
+                history.add_entry(f"{name} {value}")
+            return
+        elif els[0] == "custom":
+            if len(els) == 1:
+                history.add_entry(f"[red]Aucun argument donné[/red]")
+                return
+            
+            if els[1] == "path":
+                if len(els) != 4:
+                    history.add_entry(f"[red]Assurez vous d'utiliser `custom path chemin raccourci`[/red]")
+                    return
                 
+                result_path = os.path.normpath(os.path.join(self.current_dir, els[2]))
+                if not os.path.exists(result_path):
+                    history.add_entry(f"[red]Veuillez utiliser un chemin valide.[/red]")
+                    return
+                
+                path_variables.add(els[3], result_path)
+                return
+
+        if path_variables.is_variable(els[0]):
+            els[0] = path_variables.variables[els[0]]
+            command = " ".join(els)
 
         if command == "clear":
             history.remove_children()
