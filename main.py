@@ -9,8 +9,13 @@ import os
 import json
 
 VARS = {
-    "CURRENT_DISK": os.getcwd().split("\\")[0] + "/"
+    "CURRENT_DISK": os.path.splitdrive(os.getcwd())[0],
 }
+
+def vars_path(path) -> str:
+    for var in VARS:
+        path = path.replace(var, VARS[var])
+    return path
 
 class PathVariables:
     """Stocke les chemin vers des fichiers dans un fichier json"""
@@ -127,16 +132,17 @@ class CommandApp(App):
                     history.add_entry(f"[red]Assurez vous d'utiliser `custom path chemin raccourci`[/red]")
                     return
                 
-                result_path = os.path.normpath(os.path.join(self.current_dir, els[2]))
+                path = vars_path(els[2])
+                result_path = os.path.normpath(os.path.join(self.current_dir, path))
                 if not os.path.exists(result_path):
-                    history.add_entry(f"[red]Veuillez utiliser un chemin valide.[/red]")
+                    history.add_entry(f"[red]{vars_path(result_path)} n'existe pas.[/red]")
                     return
-                
-                path_variables.add(els[3], result_path)
+                history.add_entry(f"[yellow]{path} {els[2]} n'existe pas.[/yellow]")
+                path_variables.add(els[3], result_path if path == els[2] else path)
                 return
 
         if path_variables.is_variable(els[0]):
-            els[0] = path_variables.variables[els[0]]
+            els[0] = vars_path(path_variables.variables[els[0]])
             command = " ".join(els)
 
         if command == "clear":
